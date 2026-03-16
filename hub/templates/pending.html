@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Workshop Starting - {{ workshop_name }}{% endblock %}
+
+{% block extra_style %}
+.status {
+    margin-bottom: 20px;
+    line-height: 1.8;
+}
+
+.dots {
+    display: inline-block;
+    width: 20px;
+}
+{% endblock %}
+
+{% block extra_head %}
+<script>
+    let dotCount = 0;
+    setInterval(() => {
+        dotCount = (dotCount + 1) % 4;
+        const dots = '.'.repeat(dotCount);
+        document.getElementById('dots').textContent = dots.padEnd(3, ' ');
+    }, 500);
+    
+    // Auto-refresh every 3 seconds
+    setTimeout(() => {
+        window.location.reload();
+    }, 3000);
+</script>
+{% endblock %}
+
+{% block body %}
+<div class="centered">
+    <div style="max-width: 700px; width: 100%;">
+        <div class="box">
+            <h1>INITIALIZING: {{ workshop_name }}</h1>
+            <div class="status">
+                <p>[ ] Allocating resources</p>
+                <p>[<span class="blink">*</span>] Creating container</p>
+                <p>[ ] Starting services</p>
+            </div>
+            <p>Status: PENDING<span id="dots">...</span></p>
+            <p class="mt-20 opacity-70">Estimated time: 30-60 seconds</p>
+        </div>
+    </div>
+</div>
+{% endblock %}

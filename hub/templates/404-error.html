@@ -1,0 +1,40 @@
+{% extends "base.html" %}
+
+{% block title %}404 - Not Found{% endblock %}
+
+{% block extra_style %}
+.path-box {
+    border: 1px solid #0f0;
+    padding: 15px;
+    margin: 20px 0;
+    word-break: break-all;
+}
+
+.actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #0f0;
+}
+{% endblock %}
+
+{% block body %}
+<div class="centered">
+    <div style="max-width: 700px; width: 100%;">
+        <div class="box">
+            <h1>ERROR 404: NOT FOUND</h1>
+            
+            <p>The requested resource does not exist.</p>
+            
+            <div class="path-box">
+                <p>Path: {{ path }}</p>
+            </div>
+            
+            <div class="actions">
+                <p class="mb-10">[1] <a href="/index">Go to workshop list</a></p>
+                <p class="mb-10">[2] <a href="javascript:history.back()">Go back</a></p>
+                <p>[3] Check URL and retry<span class="blink">_</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

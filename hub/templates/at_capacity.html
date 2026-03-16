@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+
+{% block title %}Workshop At Capacity - {{ workshop_name }}{% endblock %}
+
+{% block extra_style %}
+.message {
+    margin-bottom: 30px;
+    line-height: 1.8;
+}
+
+.actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #0f0;
+}
+{% endblock %}
+
+{% block extra_head %}
+<script>
+    // Auto-refresh every 10 seconds
+    setTimeout(() => {
+        window.location.reload();
+    }, 10000);
+</script>
+{% endblock %}
+
+{% block body %}
+<div class="centered">
+    <div style="max-width: 700px; width: 100%;">
+        <div class="box">
+            <h1>ERROR: CAPACITY LIMIT REACHED</h1>
+            <div class="message">
+                <p>Workshop: {{ workshop_name }}</p>
+                <p>Status: ALL SLOTS IN USE</p>
+                <p class="mt-20">All available workshop environments are currently active.</p>
+                <p>This page will automatically refresh in 10 seconds.</p>
+            </div>
+            <div class="actions">
+                <p class="mb-10">[1] <a href="javascript:window.location.reload()">Retry now</a></p>
+                <p class="mb-10">[2] <a href="/index">Return to workshop list</a></p>
+                <p>[3] Wait for automatic retry<span class="blink">_</span></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

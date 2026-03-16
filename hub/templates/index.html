@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Workshop Hub{% endblock %}
+
+{% block extra_style %}
+.header {
+    margin-bottom: 40px;
+    border: 2px solid #0f0;
+    padding: 20px;
+}
+
+.workshops {
+    border: 2px solid #0f0;
+    padding: 20px;
+}
+
+.workshop-item {
+    margin-bottom: 30px;
+    padding: 15px;
+    border: 1px solid #0f0;
+}
+
+.workshop-item:last-child {
+    margin-bottom: 0;
+}
+
+.empty-state {
+    border: 2px solid #0f0;
+    padding: 40px 20px;
+    text-align: center;
+}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="header">
+        <h1>WORKSHOP HUB</h1>
+        <p>Select workshop to begin <span class="blink">_</span></p>
+    </div>
+    
+    {% if workshops.is_empty() %}
+    <div class="empty-state">
+        <h2>NO WORKSHOPS AVAILABLE</h2>
+        <p>Check back later</p>
+    </div>
+    {% else %}
+    <div class="workshops">
+        {% for workshop in workshops %}
+        <div class="workshop-item">
+            <h2>{{ workshop.name }}</h2>
+            <p class="opacity-80">{{ workshop.description }}</p>
+            <a href="/workshop/{{ workshop.name }}" class="btn">[LAUNCH]</a>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

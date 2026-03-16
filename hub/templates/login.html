@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+
+{% block title %}Login - Workshop Hub{% endblock %}
+
+{% block extra_style %}
+.login-box {
+    border: 2px solid #0f0;
+    padding: 40px;
+    max-width: 500px;
+    margin: 60px auto;
+}
+
+.form-group {
+    margin-bottom: 25px;
+}
+
+.form-group label {
+    display: block;
+    margin-bottom: 10px;
+    color: #0f0;
+    font-size: 0.9rem;
+    letter-spacing: 1px;
+}
+
+.form-control {
+    width: 100%;
+    padding: 12px;
+    background: #1e1e1e;
+    border: 1px solid #333;
+    color: #d4d4d4;
+    font-family: inherit;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: #0f0;
+}
+
+.error-message {
+    color: #ff5555;
+    background: rgba(255, 85, 85, 0.1);
+    margin-bottom: 25px;
+    display: none;
+    border: 1px solid #ff5555;
+    padding: 15px;
+    font-size: 0.9rem;
+}
+{% endblock %}
+
+{% block body %}
+<div class="container">
+    <div class="login-box">
+        <div class="header text-center mb-40">
+            <h1>IDENTITY VERIFICATION</h1>
+            <p>Enter credentials to proceed <span class="blink">_</span></p>
+        </div>
+
+        <div id="error-display" class="error-message"></div>
+
+        <form id="login-form">
+            <div class="form-group">
+                <label for="username">USERNAME</label>
+                <input type="text" id="username" name="username" class="form-control" autocomplete="off" required placeholder="Display Name">
+            </div>
+            
+            <div class="text-center mt-30">
+                <button type="submit" class="btn">[ AUTHENTICATE ]</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.getElementById('login-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const username = document.getElementById('username').value;
+    const errorDisplay = document.getElementById('error-display');
+    const submitBtn = e.target.querySelector('button');
+    
+    // Reset state
+    errorDisplay.style.display = 'none';
+    submitBtn.disabled = true;
+    submitBtn.textContent = "[ VERIFYING... ]";
+    
+    try {
+        const response = await fetch('/workshop-login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ username })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            // Redirect to the URL provided by backend or default to home
+            window.location.href = data.redirect || '/';
+        } else {
+            errorDisplay.textContent = "> ERROR: " + data.message;
+            errorDisplay.style.display = 'block';
+            submitBtn.disabled = false;
+            submitBtn.textContent = "[ AUTHENTICATE ]";
+        }
+    } catch (err) {
+        errorDisplay.textContent = "> SYSTEM ERROR: Connection failed";
+        errorDisplay.style.display = 'block';
+        submitBtn.disabled = false;
+        submitBtn.textContent = "[ AUTHENTICATE ]";
+    }
+});
+</script>
+{% endblock %}

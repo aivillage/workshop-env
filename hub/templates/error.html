@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Workshop Error - {{ workshop_name }}{% endblock %}
+
+{% block extra_style %}
+.error-box {
+    border: 1px solid #0f0;
+    padding: 20px;
+    margin-bottom: 30px;
+}
+
+.staff-notice {
+    border: 2px solid #0f0;
+    padding: 25px;
+    margin: 30px 0;
+    text-align: center;
+}
+
+.actions {
+    margin-top: 30px;
+    padding-top: 20px;
+    border-top: 1px solid #0f0;
+}
+{% endblock %}
+
+{% block body %}
+<div class="centered">
+    <div style="max-width: 700px; width: 100%;">
+        <div class="box">
+            <h1>FATAL ERROR: SETUP FAILED</h1>
+            
+            <div class="error-box">
+                <p>Workshop: {{ workshop_name }}</p>
+                <p>Status: INITIALIZATION FAILURE</p>
+                <p class="mt-15">{{ error_message }}</p>
+            </div>
+            
+            <div class="staff-notice">
+                <h2>ASSISTANCE REQUIRED</h2>
+                <p>Please contact a staff member</p>
+                <p class="mt-10">Staff can resolve this issue<span class="blink">_</span></p>
+            </div>
+            
+            <div class="actions">
+                <p class="mb-10">[1] <a href="javascript:window.location.reload()">Retry setup</a></p>
+                <p>[2] <a href="/index">Return to workshop list</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

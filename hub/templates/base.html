@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Workshop Hub{% endblock %}</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        :root {
+            --bg-color: #1e1e1e;
+            --text-color: #d4d4d4;
+            --accent-color: #4caf50; /* Muted Green */
+            --border-color: #333333;
+            --hover-bg: #2d2d2d;
+        }
+
+        body {
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace; /* More modern font stack */
+            background: var(--bg-color);
+            color: var(--text-color);
+            min-height: 100vh;
+            padding: 20px;
+            line-height: 1.6;
+        }
+        
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+        
+        .centered {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .box {
+            background: #252526;
+            border: 1px solid var(--border-color);
+            border-radius: 8px; /* Slight rounding for modern feel */
+            padding: 40px 30px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        }
+        
+        .box-sm {
+            background: #252526;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            padding: 15px;
+        }
+        
+        h1 {
+            color: #fff;
+            font-size: 1.8rem;
+            font-weight: 500;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+        
+        h2 {
+            color: #fff;
+            font-size: 1.3rem;
+            font-weight: 500;
+            margin-bottom: 15px;
+        }
+        
+        p {
+            margin-bottom: 10px;
+            color: #cccccc;
+        }
+        
+        a {
+            color: var(--accent-color);
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+        
+        a:hover {
+            color: #81c784; /* Lighter muted green on hover */
+            text-decoration: underline;
+        }
+        
+        .btn {
+            background: transparent;
+            color: var(--accent-color);
+            text-decoration: none;
+            border: 1px solid var(--accent-color);
+            border-radius: 4px;
+            padding: 8px 16px;
+            display: inline-block;
+            transition: all 0.2s ease;
+            font-size: 0.9rem;
+        }
+        
+        .btn:hover {
+            background: var(--accent-color);
+            color: white;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        
+        .divider {
+            border-top: 1px solid var(--border-color);
+            margin: 20px 0;
+        }
+        
+        .blink {
+            animation: blink 1s step-start infinite;
+        }
+        
+        @keyframes blink {
+            50% { opacity: 0; }
+        }
+        
+        .opacity-70 { opacity: 0.7; }
+        .opacity-80 { opacity: 0.8; }
+        
+        .mt-10 { margin-top: 10px; }
+        .mt-15 { margin-top: 15px; }
+        .mt-20 { margin-top: 20px; }
+        .mt-30 { margin-top: 30px; }
+        .mb-10 { margin-bottom: 10px; }
+        .mb-15 { margin-bottom: 15px; }
+        .mb-20 { margin-bottom: 20px; }
+        .mb-30 { margin-bottom: 30px; }
+        .mb-40 { margin-bottom: 40px; }
+        
+        .text-center {
+            text-align: center;
+        }
+        
+        /* Code block styling if needed */
+        code, pre {
+            background: #101010;
+            padding: 2px 5px;
+            border-radius: 4px;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            font-size: 0.9em;
+        }
+        
+        {% block extra_style %}{% endblock %}
+    </style>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    {% block body %}{% endblock %}
+</body>
+</html>
