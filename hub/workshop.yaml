@@ -40,17 +40,17 @@ rules:
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
-  
+
   # Pod status for health checks
   - apiGroups: [""]
     resources: ["pods/status"]
     verbs: ["get"]
-  
+
   # Service management in workshop namespaces
   - apiGroups: [""]
     resources: ["services"]
     verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
-  
+
   # Secret management in workshop namespaces
   - apiGroups: [""]
     resources: ["secrets"]
@@ -116,7 +116,7 @@ metadata:
   namespace: workshop
 spec:
   description: "Allow workshop pods to receive traffic from the hub"
-  endpointSelector: 
+  endpointSelector:
     matchLabels:
       managed-by: workshop-hub
   ingress:
@@ -126,16 +126,16 @@ spec:
             app: workshop-hub
       toPorts:
         - ports:
-            - port: "8888"   # Sidecar proxy port
+            - port: "8888" # Sidecar proxy port
               protocol: TCP
-            - port: "9000"   # Sidecar health port  
+            - port: "9000" # Sidecar health port
               protocol: TCP
-    
+
     - fromEntities:
         - host
       toPorts:
         - ports:
-            - port: "9000"   # Health check port
+            - port: "9000" # Health check port
               protocol: TCP
 
 ---
@@ -165,9 +165,9 @@ spec:
             io.kubernetes.pod.namespace: workshop
       toPorts:
         - ports:
-            - port: "8888"   # Sidecar proxy port
+            - port: "8888" # Sidecar proxy port
               protocol: TCP
-            - port: "9000"   # Sidecar health port
+            - port: "9000" # Sidecar health port
               protocol: TCP
     - toEntities:
         - kube-apiserver
@@ -183,13 +183,13 @@ spec:
     matchLabels:
       app: ai-proxy
   ingress:
-  - fromEndpoints:
-    - matchLabels:
-        io.kubernetes.pod.namespace: workshop
-    toPorts:
-    - ports:
-      - port: "8080"
-        protocol: TCP
+    - fromEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: workshop
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
 ---
 apiVersion: "cilium.io/v2"
 kind: CiliumNetworkPolicy
@@ -199,30 +199,30 @@ metadata:
 spec:
   endpointSelector: {} # Matches ALL pods
   egress:
-  - toEndpoints:
-    - matchLabels:
-        io.kubernetes.pod.namespace: kube-system
-        k8s-app: kube-dns
-    toPorts:
-    - ports:
-      - port: "53"
-        protocol: UDP
-      - port: "53"
-        protocol: TCP
-  - toEndpoints:
-    - matchLabels:
-        io.kubernetes.pod.namespace: default
-        app: ai-proxy
-    toPorts:
-    - ports:
-      - port: "80"
-        protocol: TCP
-  - toFQDNs:
-    - matchName: "ai-proxy-svc.default.svc.cluster.local"
-    toPorts:
-    - ports:
-      - port: "80"
-        protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    - toEndpoints:
+        - matchLabels:
+            io.kubernetes.pod.namespace: default
+            app: ai-proxy
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
+    - toFQDNs:
+        - matchName: "ai-proxy-svc.default.svc.cluster.local"
+      toPorts:
+        - ports:
+            - port: "80"
+              protocol: TCP
 ---
 apiVersion: cilium.io/v2
 kind: CiliumNetworkPolicy
@@ -251,7 +251,7 @@ spec:
     - toEndpoints:
         - matchLabels:
             io.kubernetes.pod.namespace: workshop
----            
+---
 # =============================================================================
 # 4. Resource Limits & Configuration
 # =============================================================================
@@ -377,7 +377,7 @@ spec:
       serviceAccountName: workshop-hub-controller
       containers:
         - name: workshop-hub
-          image: workshop-hub
+          image: ghcr.io/nbhdai/workshop-hub:latest
           imagePullPolicy: Always
           ports:
             - name: http
@@ -393,15 +393,15 @@ spec:
           livenessProbe:
             httpGet:
               path: /health
-              port: http  
-            initialDelaySeconds: 15 
+              port: http
+            initialDelaySeconds: 15
             periodSeconds: 30
             failureThreshold: 3
           securityContext:
             allowPrivilegeEscalation: false
             capabilities:
               drop:
-              - "ALL"
+                - "ALL"
             seccompProfile:
               type: "RuntimeDefault"
           env:
@@ -436,106 +436,107 @@ spec:
       nodePort: 30303
       protocol: TCP
 
-# # =============================================================================
-# # 6. Supporting Services (YOLO & Email Challenges)
-# # =============================================================================
-# ---
-# # YOLO Challenge Server
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: yolo-l2-verification
-#   namespace: workshop
-#   labels:
-#     app: yolo-l2-verification
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: yolo-l2-verification
-#   template:
-#     metadata:
-#       labels:
-#         app: yolo-l2-verification
-#     spec:
-#       containers:
-#         - name: verification
-#           image: ghcr.io/nbhdai/workshop-yolo-l2-verification:latest
-#           imagePullPolicy: Always
-#           ports:
-#             - containerPort: 5000
-#           env:
-#             - name: L2_THRESHOLD
-#               value: "50.0"
-#           resources:
-#             requests:
-#               memory: "128Mi"
-#               cpu: "100m"
-#             limits:
-#               memory: "512Mi"
-#               cpu: "500m"
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: yolo-l2-verification
-#   namespace: workshop
-# spec:
-#   selector:
-#     app: yolo-l2-verification
-#   ports:
-#     - protocol: TCP
-#       port: 5000
-#       targetPort: 5000
 
-# ---
-# # Email Workshop Service (LLM Bot)
-# apiVersion: apps/v1
-# kind: Deployment
-# metadata:
-#   name: email-indirect-service
-#   namespace: workshop
-#   labels:
-#     app: email-indirect-service
-# spec:
-#   replicas: 1
-#   selector:
-#     matchLabels:
-#       app: email-indirect-service
-#   template:
-#     metadata:
-#       labels:
-#         app: email-indirect-service
-#     spec:
-#       containers:
-#         - name: service
-#           image: ghcr.io/nbhdai/workshop-email-indirect-service:latest
-#           imagePullPolicy: Always
-#           ports:
-#             - containerPort: 2525
-#           env:
-#             - name: LISTEN_PORT
-#               value: "2525"
-#             - name: VLLM_URL
-#               # Pointing to the AI Proxy in default namespace (assuming it exists based on policies)
-#               value: "http://ai-proxy-svc.default.svc.cluster.local/v1/chat/completions"
-#           resources:
-#             requests:
-#               memory: "128Mi"
-#               cpu: "100m"
-#             limits:
-#               memory: "512Mi"
-#               cpu: "500m"
-# ---
-# apiVersion: v1
-# kind: Service
-# metadata:
-#   name: email-indirect-service
-#   namespace: workshop
-# spec:
-#   selector:
-#     app: email-indirect-service
-#   ports:
-#     - protocol: TCP
-#       port: 2525
-#       targetPort: 2525
+# =============================================================================
+# 6. Supporting Services (YOLO & Email Challenges)
+# =============================================================================
+---
+# YOLO Challenge Server
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: yolo-l2-verification
+  namespace: workshop
+  labels:
+    app: yolo-l2-verification
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: yolo-l2-verification
+  template:
+    metadata:
+      labels:
+        app: yolo-l2-verification
+    spec:
+      containers:
+        - name: verification
+          image: ghcr.io/nbhdai/workshop-yolo-l2-verification:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 5000
+          env:
+            - name: L2_THRESHOLD
+              value: "50.0"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: yolo-l2-verification
+  namespace: workshop
+spec:
+  selector:
+    app: yolo-l2-verification
+  ports:
+    - protocol: TCP
+      port: 5000
+      targetPort: 5000
+
+---
+# Email Workshop Service (LLM Bot)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-indirect-service
+  namespace: workshop
+  labels:
+    app: email-indirect-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: email-indirect-service
+  template:
+    metadata:
+      labels:
+        app: email-indirect-service
+    spec:
+      containers:
+        - name: service
+          image: ghcr.io/nbhdai/workshop-email-indirect-service:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 2525
+          env:
+            - name: LISTEN_PORT
+              value: "2525"
+            - name: VLLM_URL
+              # Pointing to the AI Proxy in default namespace (assuming it exists based on policies)
+              value: "http://ai-proxy-svc.default.svc.cluster.local/v1/chat/completions"
+          resources:
+            requests:
+              memory: "128Mi"
+              cpu: "100m"
+            limits:
+              memory: "512Mi"
+              cpu: "500m"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: email-indirect-service
+  namespace: workshop
+spec:
+  selector:
+    app: email-indirect-service
+  ports:
+    - protocol: TCP
+      port: 2525
+      targetPort: 2525
