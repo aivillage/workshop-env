@@ -10,3 +10,4 @@ result-*
 target
 .envrc
 *.csv
+.talos
