@@ -11,13 +11,9 @@
       self,
       nixpkgs,
       flake-parts,
-      lab-setup,
       ...
     }:
     flake-parts.lib.mkFlake { inherit inputs; } {
-      imports = [
-        inputs.process-compose-flake.flakeModule
-      ];
 
       systems = [
         "x86_64-linux"
@@ -57,8 +53,6 @@
         in
         {
           devShells.default = deployShell;
-
-          process-compose."default" = dev_shell.environment;
         };
     };
 }
