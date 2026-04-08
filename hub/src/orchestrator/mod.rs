@@ -81,6 +81,10 @@ impl Orchestrator {
         Self::with_config(config).await
     }
 
+    pub fn has_workshop(&self, name: &str) -> bool {
+        self.config.workshops.iter().any(|w| w.name.as_str() == name)
+    }
+
     pub async fn with_config(config: config::Config) -> Self {
         let pods = HashMap::new();
         let http_client = reqwest::Client::builder()

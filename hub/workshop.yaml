@@ -435,6 +435,25 @@ spec:
       targetPort: 8080
       nodePort: 30303
       protocol: TCP
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: workshop-hub-ingress
+  namespace: workshop-hub-system
+spec:
+  ingressClassName: cilium
+  rules:
+    - host: "aiv.local"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: workshop-hub
+                port:
+                  number: 8080
 
 
 # =============================================================================
