@@ -1,0 +1,90 @@
+name: Build and Push Containers
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'sidecar/**'
+      - 'hub/**'
+      - 'Cargo.lock'
+      - 'Cargo.toml'
+      - 'flake.nix'
+      - 'flake.lock'
+      - 'nix/**'
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/nbhdai
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - name: Run tests
+        run: nix flake check
+
+  build-and-push:
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    strategy:
+      matrix:
+        image:
+          - name: workshop-sidecar
+            flake-attr: workshop-sidecar
+          - name: workshop-hub
+            flake-attr: workshop-hub
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build image via Nix
+        run: nix build .#${{ matrix.image.flake-attr }} --out-link result-image
+
+      - name: Extract version from flake
+        id: version
+        run: |
+          # The nix-built image tag IS the version from the flake
+          VERSION=$(docker load < result-image | grep -oP 'Loaded image: \S+:\K\S+')
+          echo "semver=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "Detected version: $VERSION"
+
+      - name: Tag and push
+        run: |
+          VERSION="${{ steps.version.outputs.semver }}"
+          LOCAL_TAG="${{ matrix.image.name }}:${VERSION}"
+          SHORT_SHA=$(echo "${{ github.sha }}" | cut -c1-7)
+
+          SEMVER_TAG="${{ env.IMAGE_PREFIX }}/${{ matrix.image.name }}:${VERSION}"
+          SHA_TAG="${{ env.IMAGE_PREFIX }}/${{ matrix.image.name }}:${VERSION}-${SHORT_SHA}"
+          LATEST_TAG="${{ env.IMAGE_PREFIX }}/${{ matrix.image.name }}:latest"
+
+          docker tag "$LOCAL_TAG" "$SEMVER_TAG"
+          docker tag "$LOCAL_TAG" "$SHA_TAG"
+          docker tag "$LOCAL_TAG" "$LATEST_TAG"
+
+          docker push "$SEMVER_TAG"
+          docker push "$SHA_TAG"
+          docker push "$LATEST_TAG"
+
+          echo "### Pushed ${{ matrix.image.name }}" >> $GITHUB_STEP_SUMMARY
+          echo "- \`$SEMVER_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`$SHA_TAG\`" >> $GITHUB_STEP_SUMMARY
+          echo "- \`$LATEST_TAG\`" >> $GITHUB_STEP_SUMMARY
