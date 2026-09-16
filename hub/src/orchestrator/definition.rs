@@ -83,7 +83,7 @@ pub fn create_workshop_pod_spec(
 
     let sidecar_container = Container {
         name: "sidecar".to_string(),
-        image: Some(crate::SIDECAR.to_string()),
+        image: Some(config.sidecar_image.clone()),
         image_pull_policy: Some("Always".to_string()),
         env: Some(vec![
             EnvVar {

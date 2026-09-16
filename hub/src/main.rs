@@ -19,7 +19,6 @@ async fn orchestrator() -> &'static Orchestrator {
     ONCE.get_or_init(|| async { Orchestrator::new().await })
         .await
 }
-pub static SIDECAR: &'static str = "ghcr.io/nbhdai/workshop-sidecar:latest";
 
 fn main() {
     tracing_subscriber::fmt::init();
@@ -35,7 +34,7 @@ fn main() {
     my_server.add_service(background_service("garbage_collector", gc));
     my_server.add_service(service);
 
-    let proxy_logic = proxy::WorkshopProxy;
+    let proxy_logic = proxy::WorkshopProxy::new(config.base_domain.clone());
 
     let mut lb = http_proxy_service(&my_server.configuration, proxy_logic);
 

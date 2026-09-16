@@ -1,0 +1,17 @@
+base_domain: "workshop.example.org"
+sidecar_image: "ghcr.io/aivillage/workshop-sidecar:latest"
+workshop_namespace: "workshop"
+workshop_ttl_seconds: 28800
+workshop_idle_seconds: 3600
+sidecar_proxy_port: 8888
+sidecar_health_port: 9000
+workshop_pod_limit: 50
+workshops:
+  - name: "yolo-l2"
+    image: "ghcr.io/aivillage/workshop-yolo-l2-notebook:latest"
+    description: "YOLO L2 distance adversarial attack challenge"
+    port: 8888
+  - name: "email-indirect"
+    image: "ghcr.io/aivillage/workshop-email-indirect-user:latest"
+    description: "Indirect prompt injection challenge"
+    port: 5000

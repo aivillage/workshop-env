@@ -4,29 +4,51 @@ use axum::http::Uri;
 use pingora::prelude::*;
 use std::str::FromStr;
 
-pub struct WorkshopProxy;
+pub struct WorkshopProxy {
+    pub base_domain: String,
+}
 
-/// Extract the subdomain from a Host header value.
+impl WorkshopProxy {
+    pub fn new(base_domain: String) -> Self {
+        Self { base_domain }
+    }
+}
+
+/// Extract the subdomain from a Host header value given a base domain.
 ///
 /// Examples:
-///   "llm-embeddings.aiv.local"      -> Some("llm-embeddings")
-///   "llm-embeddings.aiv.local:8080" -> Some("llm-embeddings")
-///   "aiv.local"                     -> None
-///   "aiv.local:8080"                -> None
-///   "localhost"                     -> None
-fn extract_subdomain(host: &str) -> Option<&str> {
-    // Strip optional port  ("host:port" -> "host")
-    let hostname = host.split(':').next().unwrap_or(host);
+///   "llm-embeddings.workshop.aivillage.org"      -> Some("llm-embeddings")
+///   "llm-embeddings.workshop.aivillage.org:8080" -> Some("llm-embeddings")
+///   "workshop.aivillage.org"                     -> None
+///   "workshop.aivillage.org:8080"                -> None
+///   "other.domain.com"                           -> None
+fn extract_subdomain<'a>(host: &'a str, base_domain: &str) -> Option<&'a str> {
+    if base_domain.is_empty() {
+        return None;
+    }
 
-    // Split into at most 2 parts: subdomain and the rest
-    // "llm-embeddings.aiv.local" -> ["llm-embeddings", "aiv.local"]
-    // "aiv.local"                -> ["aiv", "local"]  (rest has no dot -> bare domain)
-    let (first, rest) = hostname.split_once('.')?;
+    let hostname = match host.split_once(':') {
+        Some((h, _)) => h,
+        None => host,
+    };
 
-    // A subdomain exists only if the remainder itself contains a dot
-    // (i.e. the full hostname has at least 3 segments).
-    if !first.is_empty() && rest.contains('.') {
-        Some(first)
+    if hostname.len() <= base_domain.len() + 1 {
+        return None;
+    }
+
+    let split_pos = hostname.len() - base_domain.len();
+    if !hostname.is_char_boundary(split_pos) {
+        return None;
+    }
+
+    let (prefix_with_dot, suffix) = hostname.split_at(split_pos);
+    if !suffix.eq_ignore_ascii_case(base_domain) {
+        return None;
+    }
+
+    let subdomain = prefix_with_dot.strip_suffix('.')?;
+    if !subdomain.is_empty() && !subdomain.contains('.') {
+        Some(subdomain)
     } else {
         None
     }
@@ -93,7 +115,7 @@ impl ProxyHttp for WorkshopProxy {
             .and_then(|h| h.to_str().ok())
             .unwrap_or("");
 
-        if let Some(workshop_name) = extract_subdomain(host) {
+        if let Some(workshop_name) = extract_subdomain(host, &self.base_domain) {
             let orchestrator = crate::orchestrator().await;
 
             let local_error_path = match orchestrator
@@ -156,3 +178,65 @@ impl ProxyHttp for WorkshopProxy {
     }
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_extract_subdomain() {
+        let base = "workshop.aivillage.org";
+        assert_eq!(
+            extract_subdomain("llm-embeddings.workshop.aivillage.org", base),
+            Some("llm-embeddings")
+        );
+        assert_eq!(
+            extract_subdomain("llm-embeddings.workshop.aivillage.org:8080", base),
+            Some("llm-embeddings")
+        );
+        assert_eq!(extract_subdomain("workshop.aivillage.org", base), None);
+        assert_eq!(extract_subdomain("workshop.aivillage.org:8080", base), None);
+        assert_eq!(extract_subdomain("other.domain.com", base), None);
+        assert_eq!(extract_subdomain(".workshop.aivillage.org", base), None);
+        assert_eq!(
+            extract_subdomain("nested.sub.workshop.aivillage.org", base),
+            None
+        );
+    }
+
+    #[test]
+    fn test_extract_subdomain_case_insensitivity() {
+        let base = "workshop.aivillage.org";
+        assert_eq!(
+            extract_subdomain("llm-embeddings.WORKSHOP.AIVILLAGE.ORG", base),
+            Some("llm-embeddings")
+        );
+        assert_eq!(
+            extract_subdomain("LLM-Embeddings.WorkShop.AiVillage.Org:8080", base),
+            Some("LLM-Embeddings")
+        );
+        assert_eq!(extract_subdomain("WORKSHOP.AIVILLAGE.ORG", base), None);
+        assert_eq!(extract_subdomain("WORKSHOP.AIVILLAGE.ORG:8080", base), None);
+
+        let upper_base = "WORKSHOP.AIVILLAGE.ORG";
+        assert_eq!(
+            extract_subdomain("llm-embeddings.workshop.aivillage.org", upper_base),
+            Some("llm-embeddings")
+        );
+        assert_eq!(
+            extract_subdomain("workshop.aivillage.org", upper_base),
+            None
+        );
+    }
+
+    #[test]
+    fn test_extract_subdomain_zero_allocation() {
+        let base = "workshop.aivillage.org";
+        let host = "llm-embeddings.workshop.aivillage.org:8080";
+        let sub = extract_subdomain(host, base).expect("subdomain should be extracted");
+
+        // The returned &str must be a direct slice of the original host string,
+        // proving zero allocation.
+        assert_eq!(sub, "llm-embeddings");
+        assert_eq!(sub.as_ptr(), host.as_ptr());
+    }
+}

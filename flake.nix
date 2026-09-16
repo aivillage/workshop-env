@@ -31,7 +31,12 @@
       ];
 
       perSystem =
-        { pkgs, system, lib, ... }:
+        {
+          pkgs,
+          system,
+          lib,
+          ...
+        }:
         let
           # ── Rust toolchain ──────────────────────────────────────
           rustToolchain = fenix.packages.${system}.stable.toolchain;
@@ -45,28 +50,12 @@
 
           commonNativeBuildInputs = with pkgs; [
             pkg-config
-            openssl
             cmake
           ];
 
-          # ── CLI tools for deploy shell ──────────────────────────
-          cliTools = with pkgs; [
-            curl
-            talosctl
-            kubectl
-            kubernetes-helm
-            tilt
-            openssl
-            zsh
-            k9s
-            cilium-cli
-            hubble
-            sops
-            ssh-to-age
-          ];
-
           # ── Rust binaries ───────────────────────────────────────
-          mkCrateBin = { pname, crate }:
+          mkCrateBin =
+            { pname, crate }:
             rustPlatform.buildRustPackage {
               inherit pname version;
               src = ./.;
@@ -76,30 +65,46 @@
               nativeBuildInputs = commonNativeBuildInputs;
               buildAndTestSubdir = crate;
               env.LD_LIBRARY_PATH = "${lib.makeLibraryPath [ pkgs.openssl ]}";
-              cargoBuildFlags = [ "-p" (builtins.baseNameOf crate) ];
+              cargoBuildFlags = [
+                "-p"
+                (baseNameOf crate)
+              ];
               doCheck = false;
 
-              meta.mainProgram = builtins.baseNameOf crate;
+              meta.mainProgram = baseNameOf crate;
             };
 
-          sidecar-bin = mkCrateBin { pname = "workshop-sidecar"; crate = "sidecar"; };
-          hub-bin     = mkCrateBin { pname = "workshop-hub";     crate = "hub"; };
+          sidecar-bin = mkCrateBin {
+            pname = "workshop-sidecar";
+            crate = "sidecar";
+          };
+          hub-bin = mkCrateBin {
+            pname = "workshop-hub";
+            crate = "hub";
+          };
 
           # ── Docker images (nix-built, no daemon needed) ─────────
-          mkImage = { name, bin }:
+          mkImage =
+            { name, bin }:
             pkgs.dockerTools.buildImage {
               inherit name;
               tag = version;
               config.Cmd = [ "${bin}/bin/${bin.meta.mainProgram}" ];
             };
 
-          workshop-sidecar = mkImage { name = "workshop-sidecar"; bin = sidecar-bin; };
-          workshop-hub     = mkImage { name = "workshop-hub";     bin = hub-bin; };
+          workshop-sidecar = mkImage {
+            name = "workshop-sidecar";
+            bin = sidecar-bin;
+          };
+          workshop-hub = mkImage {
+            name = "workshop-hub";
+            bin = hub-bin;
+          };
 
           # ── Upload scripts ──────────────────────────────────────
           containerUpload = import ./nix/container_upload.nix {
             inherit pkgs version;
-            registry = "ghcr.io/nbhdai";
+            registry = "ghcr.io/aivillage";
           };
 
           devShell = pkgs.mkShell {
@@ -108,13 +113,21 @@
               rustToolchain
               pkgs.docker
               pkgs.git
+              pkgs.cmake
+              pkgs.pkg-config
+              pkgs.openssl
+              pkgs.kubectl
+              pkgs.k9s
+              pkgs.talosctl
             ];
             shellHook = ''
               export PROJECT_ROOT=$PWD
               export WORKSHOP_VERSION="${version}"
-              export TALOS_DIR="$PROJECT_ROOT/.talos"
-              export KUBECONFIG="$TALOS_DIR/kubeconfig"
-              export TALOSCONFIG="$TALOS_DIR/talosconfig"
+              export TALOS_DIR="''${TALOS_DIR:-$PROJECT_ROOT/.talos}"
+              if [ -f "$TALOS_DIR/kubeconfig" ]; then
+                export KUBECONFIG="''${KUBECONFIG:-$TALOS_DIR/kubeconfig}"
+                export TALOSCONFIG="''${TALOSCONFIG:-$TALOS_DIR/talosconfig}"
+              fi
               export LD_LIBRARY_PATH="${lib.makeLibraryPath [ pkgs.openssl ]}:''${LD_LIBRARY_PATH:-}"
 
               if [ -f .envhost ]; then
@@ -135,7 +148,12 @@
           };
 
           packages = containerUpload.packages // {
-            inherit sidecar-bin hub-bin workshop-sidecar workshop-hub;
+            inherit
+              sidecar-bin
+              hub-bin
+              workshop-sidecar
+              workshop-hub
+              ;
           };
 
           checks = {

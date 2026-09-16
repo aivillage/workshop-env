@@ -1,0 +1,119 @@
+# =============================================================================
+# 1. Namespaces
+# =============================================================================
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop-hub-system
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: workshop
+---
+# =============================================================================
+# 2. RBAC
+# =============================================================================
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: workshop-hub-controller
+  namespace: workshop-hub-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: workshop-hub-controller
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "pods/status", "services"]
+    verbs: ["get", "list", "watch", "create", "delete", "patch", "update"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: workshop-hub-manage-workshops
+  namespace: workshop
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: workshop-hub-controller
+subjects:
+  - kind: ServiceAccount
+    name: workshop-hub-controller
+    namespace: workshop-hub-system
+---
+# =============================================================================
+# 3. Hub Application Configuration
+# =============================================================================
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: workshop-hub-config
+  namespace: workshop-hub-system
+data:
+  config.yaml: |
+    base_domain: "workshop.example.org"
+    sidecar_image: "ghcr.io/aivillage/workshop-sidecar:v0.1.0"
+    workshop_namespace: "workshop"
+    workshop_ttl_seconds: 28800
+    workshop_idle_seconds: 3600
+    sidecar_proxy_port: 8888
+    sidecar_health_port: 9000
+    workshop_pod_limit: 50
+    workshops:
+      - name: "yolo-l2"
+        image: "ghcr.io/aivillage/workshop-yolo-l2-notebook:latest"
+        description: "YOLO L2 Challenge"
+        port: 8888
+---
+# =============================================================================
+# 4. Hub Deployment & Service
+# =============================================================================
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: workshop-hub
+  namespace: workshop-hub-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: workshop-hub
+  template:
+    metadata:
+      labels:
+        app: workshop-hub
+    spec:
+      serviceAccountName: workshop-hub-controller
+      containers:
+        - name: workshop-hub
+          image: ghcr.io/aivillage/workshop-hub:latest
+          ports:
+            - containerPort: 8080
+              name: http
+          env:
+            - name: RUST_LOG
+              value: "info,hub=debug"
+          volumeMounts:
+            - name: config-volume
+              mountPath: /etc/workshop/config.yaml
+              subPath: config.yaml
+      volumes:
+        - name: config-volume
+          configMap:
+            name: workshop-hub-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: workshop-hub
+  namespace: workshop-hub-system
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 8080
+      name: http
+  selector:
+    app: workshop-hub

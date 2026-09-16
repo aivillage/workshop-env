@@ -34,6 +34,8 @@ pub fn get_test_config() -> Config {
         sidecar_health_port: 9000,
         sidecar_proxy_port: 8888,
         garbage_collection_seconds: 300,
+        base_domain: "workshop.aivillage.org".to_string(),
+        sidecar_image: "ghcr.io/aivillage/workshop-sidecar:latest".to_string(),
     }
 }
 
@@ -52,5 +54,7 @@ pub fn get_gc_test_config() -> Config {
         sidecar_health_port: 9000,
         sidecar_proxy_port: 8888,
         garbage_collection_seconds: 300,
+        base_domain: "workshop.aivillage.org".to_string(),
+        sidecar_image: "ghcr.io/aivillage/workshop-sidecar:latest".to_string(),
     }
 }

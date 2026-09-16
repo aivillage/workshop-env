@@ -67,6 +67,12 @@ pub struct Config {
     /// Workshop container memory limit.
     #[serde(default = "default_garbage_collection_seconds")]
     pub garbage_collection_seconds: i64,
+
+    #[serde(default = "default_base_domain")]
+    pub base_domain: String,
+
+    #[serde(default = "default_sidecar_image")]
+    pub sidecar_image: String,
 }
 
 impl Config {
@@ -121,6 +127,16 @@ fn default_workshop_mem_limit() -> String {
 fn default_garbage_collection_seconds() -> i64 {
     300
 }
+fn default_base_domain() -> String {
+    std::env::var("BASE_DOMAIN")
+        .expect("BASE_DOMAIN must be specified in workshop.yaml or via environment variable")
+}
+fn default_sidecar_image() -> String {
+    match std::env::var("SIDECAR_IMAGE") {
+        Ok(image) if !image.is_empty() => image,
+        _ => "ghcr.io/aivillage/workshop-sidecar:latest".to_string(),
+    }
+}
 
 impl Config {
     /// Loads configuration from environment variables.
@@ -144,6 +160,7 @@ impl Config {
         // 2. Check for sensible default file locations (Container friendly)
         let default_paths = [
             "workshop.yaml",
+            "examples/config.yaml",
             "/app/config/workshop.yaml",
             "/etc/workshop/config.yaml",
         ];
@@ -157,7 +174,7 @@ impl Config {
         }
 
         panic!(
-            "Unable to find workshop config file. Checked WORKSHOP_CONFIG env var and default paths: workshop.yaml, /app/config/workshop.yaml, /etc/workshop/config.yaml"
+            "Unable to find workshop config file. Checked WORKSHOP_CONFIG env var and default paths: workshop.yaml, examples/config.yaml, /app/config/workshop.yaml, /etc/workshop/config.yaml"
         );
     }
 
@@ -168,8 +185,20 @@ impl Config {
         let contents = std::fs::read_to_string(path)
             .unwrap_or_else(|e| panic!("Failed to read pyroduct config file {:?}: {}", path, e));
 
-        let config: Self = serde_yaml::from_str(&contents)
+        let mut config: Self = serde_yaml::from_str(&contents)
             .unwrap_or_else(|e| panic!("Failed to parse pyroduct YAML config: {}", e));
+
+        if let Ok(env_domain) = std::env::var("BASE_DOMAIN") {
+            if !env_domain.is_empty() {
+                config.base_domain = env_domain;
+            }
+        }
+
+        if let Ok(env_image) = std::env::var("SIDECAR_IMAGE") {
+            if !env_image.is_empty() {
+                config.sidecar_image = env_image;
+            }
+        }
 
         debug!("Loaded pyroduct config: {:?}", config);
         config
