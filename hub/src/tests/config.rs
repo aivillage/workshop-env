@@ -1,4 +1,4 @@
-use crate::config::{Config, Workshop, default_workshop};
+use crate::config::{Config, default_workshop};
 
 /// Validates that we're running in the correct test environment
 pub fn validate_talos_environment() -> Result<(), String> {

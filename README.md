@@ -135,8 +135,11 @@ Exactly one target (`SIDECAR_TARGET_TCP` or `SIDECAR_TARGET_UDS`) must be set.
 ### Testing the Rust Crates
 
 ```bash
-# Test Hub routing and subdomain extraction logic
-cargo test -p hub proxy::tests
+# Test Hub routing and subdomain extraction logic (unit tests)
+cargo test -p hub
+
+# Run Hub cluster integration tests (requires active Talos cluster and KUBECONFIG)
+cargo test -p hub -- --ignored
 
 # Test Sidecar proxy bidirectional copying and activity tracking
 cargo test -p sidecar

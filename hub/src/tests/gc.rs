@@ -12,6 +12,7 @@ use tracing::{debug, info};
 /// Tests that GC cleans up idle pods.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_cleans_up_idle_pods() {
     info!("🧪 Starting test: GC cleans up idle pods");
 
@@ -91,6 +92,7 @@ async fn test_gc_cleans_up_idle_pods() {
 /// Tests that GC respects TTL annotations.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_respects_ttl() {
     info!("🧪 Starting test: GC respects TTL");
 
@@ -179,6 +181,7 @@ async fn test_gc_respects_ttl() {
 /// Tests that GC only affects workshop-managed pods.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_only_affects_managed_pods() {
     info!("🧪 Starting test: GC only affects managed pods");
 
@@ -276,6 +279,7 @@ async fn test_gc_only_affects_managed_pods() {
 /// Tests that GC handles pods without health endpoints gracefully.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_handles_missing_health_endpoint() {
     info!("🧪 Starting test: GC handles missing health endpoint");
 
@@ -356,6 +360,7 @@ async fn test_gc_handles_missing_health_endpoint() {
 /// Tests that GC cleans up pods that have failed to start.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_cleans_failed_pods() {
     info!("🧪 Starting test: GC cleans failed pods");
 
@@ -438,6 +443,7 @@ async fn test_gc_cleans_failed_pods() {
 /// Tests that GC can handle an empty namespace gracefully.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_empty_namespace() {
     info!("🧪 Starting test: GC empty namespace");
 
@@ -461,6 +467,7 @@ async fn test_gc_empty_namespace() {
 /// Tests that GC properly counts deleted pods.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_gc_returns_correct_count() {
     info!("🧪 Starting test: GC returns correct count");
 

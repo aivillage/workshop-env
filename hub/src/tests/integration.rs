@@ -11,6 +11,7 @@ use tracing::{debug, info, trace, warn};
 /// and returns the same binding on subsequent calls (idempotency).
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_orchestrator_creates_pod_and_service() {
     info!("🧪 Starting test: orchestrator creates pod and service");
 
@@ -76,6 +77,7 @@ async fn test_orchestrator_creates_pod_and_service() {
 /// Tests that the orchestrator enforces the global pod limit.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_pod_limit_enforcement() {
     info!("🧪 Starting test: pod limit enforcement");
 
@@ -156,6 +158,7 @@ async fn test_pod_limit_enforcement() {
 /// Tests that concurrent pod creation requests are handled safely.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_concurrent_pod_creation() {
     info!("🧪 Starting test: concurrent pod creation");
 
@@ -235,6 +238,7 @@ async fn test_concurrent_pod_creation() {
 /// Tests that the orchestrator can recover state from Kubernetes.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_orchestrator_state_recovery() {
     info!("🧪 Starting test: orchestrator state recovery");
 
@@ -303,6 +307,7 @@ async fn test_orchestrator_state_recovery() {
 /// Tests that delete removes both pod and service.
 #[tracing_test::traced_test]
 #[tokio::test]
+#[ignore = "requires running Talos cluster"]
 async fn test_orchestrator_delete() {
     info!("🧪 Starting test: orchestrator delete");
 
