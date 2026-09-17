@@ -48,10 +48,15 @@
 
           commonBuildInputs = with pkgs; [ openssl ];
 
-          commonNativeBuildInputs = with pkgs; [
-            pkg-config
-            cmake
-          ];
+          commonNativeBuildInputs =
+            with pkgs;
+            [
+              pkg-config
+              cmake
+            ]
+            ++ lib.optionals pkgs.stdenv.isLinux [
+              pkgs.autoPatchelfHook
+            ];
 
           # ── Rust binaries ───────────────────────────────────────
           mkCrateBin =
@@ -89,7 +94,14 @@
             pkgs.dockerTools.buildImage {
               inherit name;
               tag = version;
-              config.Cmd = [ "${bin}/bin/${bin.meta.mainProgram}" ];
+              copyToRoot = [ pkgs.cacert ];
+              config = {
+                Cmd = [ "${bin}/bin/${bin.meta.mainProgram}" ];
+                Env = [
+                  "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+                  "LD_LIBRARY_PATH=${lib.makeLibraryPath [ pkgs.openssl ]}"
+                ];
+              };
             };
 
           workshop-sidecar = mkImage {
