@@ -46,7 +46,12 @@
             rustc = rustToolchain;
           };
 
-          commonBuildInputs = with pkgs; [ openssl ];
+          commonBuildInputs =
+            with pkgs;
+            [ openssl ]
+            ++ lib.optionals pkgs.stdenv.isLinux [
+              pkgs.stdenv.cc.cc.lib
+            ];
 
           commonNativeBuildInputs =
             with pkgs;
@@ -99,7 +104,7 @@
                 Cmd = [ "${bin}/bin/${bin.meta.mainProgram}" ];
                 Env = [
                   "SSL_CERT_FILE=${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
-                  "LD_LIBRARY_PATH=${lib.makeLibraryPath [ pkgs.openssl ]}"
+                  "LD_LIBRARY_PATH=${lib.makeLibraryPath (with pkgs; [ openssl ] ++ lib.optionals pkgs.stdenv.isLinux [ pkgs.stdenv.cc.cc.lib ])}"
                 ];
               };
             };
