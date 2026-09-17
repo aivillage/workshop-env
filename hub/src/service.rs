@@ -23,6 +23,7 @@ use crate::{auth, config::Workshop, orchestrator};
 #[template(path = "index.html")]
 struct IndexTemplate {
     workshops: Vec<Workshop>,
+    base_domain: String,
 }
 
 #[derive(Template)]
@@ -98,6 +99,7 @@ async fn index_handler() -> Result<Response, StatusCode> {
     };
 
     let workshops = orchestrator.config.workshops.clone();
+    let base_domain = orchestrator.config.base_domain.clone();
     info!(
         workshop_count = workshops.len(),
         "Retrieved workshop configurations"
@@ -111,7 +113,10 @@ async fn index_handler() -> Result<Response, StatusCode> {
         );
     }
 
-    let template = IndexTemplate { workshops };
+    let template = IndexTemplate {
+        workshops,
+        base_domain,
+    };
 
     match template.render() {
         Ok(html) => {
