@@ -65,6 +65,7 @@ data:
       - name: "yolo-l2"
         image: "ghcr.io/aivillage/workshop-yolo-l2-notebook:latest"
         description: "YOLO L2 Challenge"
+        launch_uri: "/lab/tree/challenge.ipynb"
         port: 8888
 ---
 # =============================================================================

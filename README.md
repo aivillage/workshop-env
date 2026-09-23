@@ -91,6 +91,7 @@ workshops:
   - name: "yolo-l2"
     image: "ghcr.io/aivillage/workshop-yolo-l2-notebook:latest"
     description: "YOLO L2 distance adversarial attack challenge"
+    launch_uri: "/lab/tree/challenge.ipynb"
     port: 8888
     env:
       JUPYTER_TOKEN: "aivillage"

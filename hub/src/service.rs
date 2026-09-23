@@ -322,3 +322,47 @@ impl pingora::services::Service for AxumService {
         "Axum Internal UI"
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_index_template_rendering_with_and_without_launch_uri() {
+        let workshops = vec![
+            Workshop {
+                name: "workshop-no-launch".to_string(),
+                image: "img1".to_string(),
+                description: "No launch uri".to_string(),
+                launch_uri: "".to_string(),
+                port: 8080,
+                env: Default::default(),
+            },
+            Workshop {
+                name: "workshop-with-launch".to_string(),
+                image: "img2".to_string(),
+                description: "With launch uri".to_string(),
+                launch_uri: "/lab/tree/challenge.ipynb".to_string(),
+                port: 8080,
+                env: Default::default(),
+            },
+        ];
+
+        let template = IndexTemplate {
+            workshops,
+            base_domain: "workshop.aivillage.org".to_string(),
+        };
+
+        let rendered = template.render().expect("Failed to render IndexTemplate");
+        assert!(
+            rendered.contains(r#"href="http://workshop-no-launch.workshop.aivillage.org""#),
+            "Rendered HTML missing expected href without launch_uri: {}",
+            rendered
+        );
+        assert!(
+            rendered.contains(r#"href="http://workshop-with-launch.workshop.aivillage.org/lab/tree/challenge.ipynb""#),
+            "Rendered HTML missing expected href with launch_uri: {}",
+            rendered
+        );
+    }
+}

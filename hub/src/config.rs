@@ -9,12 +9,32 @@ pub struct Workshop {
     pub name: String,
     /// The container image to use for the workshop.
     pub image: String,
-    /// The container image to use for the workshop.
+    /// The description for the workshop.
     pub description: String,
+    /// Optional path and query string to append to the hub launch link.
+    #[serde(default, deserialize_with = "deserialize_launch_uri")]
+    pub launch_uri: String,
     /// The port the container is listening on
     pub port: i32,
     #[serde(default)]
     pub env: HashMap<String, String>,
+}
+
+fn deserialize_launch_uri<'de, D>(deserializer: D) -> Result<String, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    let opt: Option<String> = Option::deserialize(deserializer)?;
+    match opt {
+        Some(uri) if !uri.is_empty() => {
+            if uri.starts_with('/') {
+                Ok(uri)
+            } else {
+                Ok(format!("/{}", uri))
+            }
+        }
+        _ => Ok(String::new()),
+    }
 }
 
 /// Top-level configuration loaded from environment variables.
@@ -88,6 +108,7 @@ pub(crate) fn default_workshop() -> Vec<Workshop> {
         description: "The host didn't finish setting this up".to_string(),
         port: 80,
         env: HashMap::new(),
+        launch_uri: String::new(),
     }]
 }
 fn default_workshop_namespace() -> String {
@@ -204,3 +225,96 @@ impl Config {
         config
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_launch_uri_omitted() {
+        let yaml = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+        "#;
+        let workshop: Workshop = serde_yaml::from_str(yaml).expect("Failed to deserialize");
+        assert_eq!(workshop.launch_uri, "");
+    }
+
+    #[test]
+    fn test_launch_uri_relative_path() {
+        let yaml = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+            launch_uri: "lab/tree"
+        "#;
+        let workshop: Workshop = serde_yaml::from_str(yaml).expect("Failed to deserialize");
+        assert_eq!(workshop.launch_uri, "/lab/tree");
+    }
+
+    #[test]
+    fn test_launch_uri_leading_slash() {
+        let yaml = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+            launch_uri: "/lab/tree?token=xyz"
+        "#;
+        let workshop: Workshop = serde_yaml::from_str(yaml).expect("Failed to deserialize");
+        assert_eq!(workshop.launch_uri, "/lab/tree?token=xyz");
+    }
+
+    #[test]
+    fn test_launch_uri_query_only() {
+        let yaml = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+            launch_uri: "?token=abc"
+        "#;
+        let workshop: Workshop = serde_yaml::from_str(yaml).expect("Failed to deserialize");
+        assert_eq!(workshop.launch_uri, "/?token=abc");
+    }
+
+    #[test]
+    fn test_launch_uri_empty_string_or_null() {
+        let yaml_empty = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+            launch_uri: ""
+        "#;
+        let workshop_empty: Workshop =
+            serde_yaml::from_str(yaml_empty).expect("Failed to deserialize");
+        assert_eq!(workshop_empty.launch_uri, "");
+
+        let yaml_null = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+            launch_uri: null
+        "#;
+        let workshop_null: Workshop =
+            serde_yaml::from_str(yaml_null).expect("Failed to deserialize");
+        assert_eq!(workshop_null.launch_uri, "");
+
+        let yaml_tilde = r#"
+            name: "test"
+            image: "test-image"
+            description: "test workshop"
+            port: 8080
+            launch_uri: ~
+        "#;
+        let workshop_tilde: Workshop =
+            serde_yaml::from_str(yaml_tilde).expect("Failed to deserialize");
+        assert_eq!(workshop_tilde.launch_uri, "");
+    }
+}
+
