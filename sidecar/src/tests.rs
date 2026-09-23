@@ -276,3 +276,51 @@ async fn test_sidecar_with_no_activity() {
         "After 5 seconds, should be at least 4s idle"
     );
 }
+
+#[tokio::test]
+async fn test_health_starting_when_upstream_down() {
+    // Pick an unused port for upstream where nothing is listening
+    let upstream_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let upstream_port = upstream_listener.local_addr().unwrap().port();
+    drop(upstream_listener);
+
+    // Pick an unused port for sidecar http server
+    let http_listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let http_addr = http_listener.local_addr().unwrap();
+    drop(http_listener);
+
+    let config = Config {
+        http_listen: http_addr.to_string(),
+        tcp_listen: "127.0.0.1:0".to_string(),
+        target_tcp: Some(format!("127.0.0.1:{}", upstream_port)),
+        target_uds: None,
+    };
+
+    let config = Arc::new(config);
+    let state = Arc::new(AppState::new());
+
+    let http_state = state.clone();
+    let http_config = config.clone();
+    tokio::spawn(async move {
+        let _ = http_server::run_http_server(http_state, http_config).await;
+    });
+
+    // Wait briefly for HTTP server to start
+    sleep(Duration::from_millis(100)).await;
+
+    let client = reqwest::Client::new();
+    let resp = client
+        .get(format!("http://{}/health", http_addr))
+        .send()
+        .await
+        .expect("Health check request should succeed");
+
+    assert_eq!(resp.status(), 200, "Health endpoint should return 200");
+
+    let health: serde_json::Value = resp.json().await.unwrap();
+    assert_eq!(
+        health["status"], "starting",
+        "Health status should be 'starting' when upstream is down"
+    );
+}
+

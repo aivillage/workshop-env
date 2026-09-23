@@ -2,6 +2,7 @@ use std::io;
 use std::pin::Pin;
 use std::sync::Arc;
 use std::task::{Context, Poll};
+use std::time::Duration;
 use tokio::io::{AsyncRead, AsyncWrite, ReadBuf};
 use tokio::net::{TcpListener, TcpStream, UnixStream};
 use tracing::{error, info, warn};
@@ -150,13 +151,39 @@ pub async fn run_proxy(state: Arc<AppState>, config: Arc<Config>) -> io::Result<
 /// Connects to the configured upstream (TCP or UDS).
 async fn connect_upstream(config: &Config) -> io::Result<UpstreamStream> {
     if let Some(tcp_addr) = &config.target_tcp {
-        let stream = TcpStream::connect(tcp_addr).await?;
-        info!("Connected to upstream TCP: {}", tcp_addr);
-        Ok(UpstreamStream::Tcp(stream))
+        let mut retries = 0;
+        loop {
+            match TcpStream::connect(tcp_addr).await {
+                Ok(stream) => {
+                    info!("Connected to upstream TCP: {}", tcp_addr);
+                    return Ok(UpstreamStream::Tcp(stream));
+                }
+                Err(e) if e.kind() == io::ErrorKind::ConnectionRefused && retries < 3 => {
+                    retries += 1;
+                    tokio::time::sleep(Duration::from_millis(150)).await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
     } else if let Some(uds_path) = &config.target_uds {
-        let stream = UnixStream::connect(uds_path).await?;
-        info!("Connected to upstream UDS: {}", uds_path);
-        Ok(UpstreamStream::Uds(stream))
+        let mut retries = 0;
+        loop {
+            match UnixStream::connect(uds_path).await {
+                Ok(stream) => {
+                    info!("Connected to upstream UDS: {}", uds_path);
+                    return Ok(UpstreamStream::Uds(stream));
+                }
+                Err(e)
+                    if (e.kind() == io::ErrorKind::ConnectionRefused
+                        || e.kind() == io::ErrorKind::NotFound)
+                        && retries < 3 =>
+                {
+                    retries += 1;
+                    tokio::time::sleep(Duration::from_millis(150)).await;
+                }
+                Err(e) => return Err(e),
+            }
+        }
     } else {
         Err(io::Error::new(
             io::ErrorKind::InvalidInput,

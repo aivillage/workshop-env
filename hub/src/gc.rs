@@ -29,6 +29,7 @@ impl BackgroundService for GarbageCollector {
             tokio::select! {
                 _ = interval.tick() => {
                     info!("GC: Running cleanup cycle");
+                    let _ = orchestrator.populate().await;
                     match orchestrator.gc().await {
                         Ok(count) if count > 0 => {
                             info!("GC: Cleaned up {} idle/expired pods", count);

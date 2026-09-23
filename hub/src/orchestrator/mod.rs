@@ -195,6 +195,15 @@ impl Orchestrator {
         // We now handle a Result instead of an Option
         let (health, pod_ip) = self.query_sidecar_health(session_key, pod).await?;
 
+        if health.status != "ok" {
+            tracing::info!(
+                status = %health.status,
+                session_key,
+                "Pod sidecar reported not ready yet"
+            );
+            return Err(SidecarError::NotReady);
+        }
+
         // Update cached health state
         let mut updated_mp = mp.clone();
         updated_mp.set_health(health);
@@ -259,12 +268,28 @@ impl Orchestrator {
             pod_ip, self.config.sidecar_health_port
         );
 
-        let resp = self
-            .http_client
-            .get(&url)
-            .send()
-            .await
-            .map_err(SidecarError::NetworkError)?;
+        let resp = match self.http_client.get(&url).send().await {
+            Ok(r) => r,
+            Err(net_err) => {
+                match self.refresh_pod(session_key).await {
+                    Ok(Some(fresh_pod)) => {
+                        if let PodDiagnosis::Ready(new_ip) = self.diagnose_pod(&fresh_pod) {
+                            if new_ip != pod_ip {
+                                tracing::info!("Pod IP changed from {} to {} for {}, retrying", pod_ip, new_ip, session_key);
+                                let new_url = format!("http://{}:{}/health", new_ip, self.config.sidecar_health_port);
+                                self.http_client.get(&new_url).send().await.map_err(SidecarError::NetworkError)?
+                            } else {
+                                return Err(SidecarError::NetworkError(net_err));
+                            }
+                        } else {
+                            return Err(SidecarError::NotReady);
+                        }
+                    }
+                    Ok(None) => return Err(SidecarError::Gone),
+                    Err(_) => return Err(SidecarError::NetworkError(net_err)),
+                }
+            }
+        };
 
         if !resp.status().is_success() {
             warn!(
@@ -456,8 +481,12 @@ impl Orchestrator {
             Err(SidecarError::K8sFailure(error)) => return Err(HubError::Error(error)),
             Err(SidecarError::Internal(error)) => return Err(HubError::Error(error)),
             Err(SidecarError::NetworkError(error)) => {
-                tracing::warn!(?error, "Network error, likely cilium booting");
-                return Err(HubError::PodNotReady)
+                if let Ok(None) = self.refresh_pod(&session_key).await {
+                    self.pods.remove(&session_key, &guard);
+                } else {
+                    tracing::warn!(?error, "Network error, likely cilium booting");
+                    return Err(HubError::PodNotReady);
+                }
             },
             Err(SidecarError::InvalidResponse(error)) => {
                 tracing::error!(?error, "Pod unhealthy, deleting and trying again");
@@ -546,8 +575,8 @@ impl Orchestrator {
         // 1. Snapshot the total count once to avoid race conditions during the loop
         let initial_count = self.pods.len();
         let limit = self.config.workshop_pod_limit;
-        // The target count we want to reach (e.g., 50% of limit)
-        let low_watermark = limit / 2;
+        // The target count we want to reach (e.g., 10% of limit, min 3)
+        let low_watermark = (limit / 10).max(3);
 
         // 2. SCAN: Identify candidates
         // Store (key, is_expired, idle_seconds) so we can sort
@@ -609,6 +638,10 @@ impl Orchestrator {
                         }
                         Err(SidecarError::UnhealthyResponse(code)) => {
                             warn!("GC: Deleting unhealthy pod {} (Status: {})", session_key, code);
+                            true
+                        }
+                        Err(SidecarError::NetworkError(e)) => {
+                            warn!("GC: Deleting unreachable pod {}: {}", session_key, e);
                             true
                         }
                         Err(e) => {
